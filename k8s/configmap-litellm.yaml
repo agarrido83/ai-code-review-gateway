@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-config
+  namespace: ai-gateway
+  labels:
+    app: litellm
+    component: gateway
+data:
+  config.yaml: |
+    model_list:
+      - model_name: claude-sonnet
+        litellm_params:
+          model: bedrock/eu.anthropic.claude-sonnet-4-6
+          aws_region_name: eu-west-1
+
+      - model_name: nova-2-lite
+        litellm_params:
+          model: bedrock/eu.amazon.nova-2-lite-v1:0
+          aws_region_name: eu-west-1
+
+    general_settings:
+      master_key: os.environ/LITELLM_MASTER_KEY
+      database_url: os.environ/DATABASE_URL
+
+    litellm_settings:
+      drop_params: true

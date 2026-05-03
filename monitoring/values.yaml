@@ -1,0 +1,123 @@
+# kube-prometheus-stack values — capstone demo
+# Persistence deshabilitada en todos los componentes: datos en memoria, suficiente para una demo.
+
+# ─── AlertManager ────────────────────────────────────────────────────────────
+alertmanager:
+  enabled: false
+
+# ─── Componentes no accesibles en EKS managed ────────────────────────────────
+# EKS gestiona el control plane internamente; estos endpoints no están expuestos.
+kubeEtcd:
+  enabled: false
+
+kubeScheduler:
+  enabled: false
+
+kubeControllerManager:
+  enabled: false
+
+# ─── Prometheus ──────────────────────────────────────────────────────────────
+prometheus:
+  prometheusSpec:
+    retention: 6h
+    storageSpec: {}  # sin PVC: datos en memoria, se pierden al reiniciar (aceptable para demo)
+    # Recoge ServiceMonitors de cualquier namespace, no solo los del Helm release
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+# ─── ServiceMonitor: API FastAPI ─────────────────────────────────────────────
+# Scrape el endpoint /metrics de los pods con label app: code-review-api en ai-gateway.
+# Requiere que el puerto del Service api-service se llame "http" (ver api-service.yaml).
+additionalServiceMonitors:
+  - name: code-review-api
+    selector:
+      matchLabels:
+        app: code-review-api
+    namespaceSelector:
+      matchNames:
+        - ai-gateway
+    endpoints:
+      - port: http
+        path: /metrics
+        interval: 15s
+
+# ─── Grafana ─────────────────────────────────────────────────────────────────
+grafana:
+  adminPassword: "capstone-grafana"
+
+  persistence:
+    enabled: false
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: capstone
+          orgId: 1
+          folder: Capstone
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/capstone
+
+  dashboards:
+    capstone:
+      code-review-api:
+        json: |
+          {
+            "title": "AI Code Review API",
+            "uid": "code-review-api",
+            "schemaVersion": 38,
+            "refresh": "10s",
+            "time": {"from": "now-30m", "to": "now"},
+            "panels": [
+              {
+                "id": 1,
+                "title": "RPS (requests/s)",
+                "type": "timeseries",
+                "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+                "targets": [{
+                  "expr": "sum(rate(http_requests_total{namespace=\"ai-gateway\"}[1m])) by (handler)",
+                  "legendFormat": "{{handler}}"
+                }]
+              },
+              {
+                "id": 2,
+                "title": "Latencia p50 / p95 (s)",
+                "type": "timeseries",
+                "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+                "targets": [
+                  {
+                    "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{namespace=\"ai-gateway\"}[5m])) by (le))",
+                    "legendFormat": "p50"
+                  },
+                  {
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=\"ai-gateway\"}[5m])) by (le))",
+                    "legendFormat": "p95"
+                  }
+                ]
+              },
+              {
+                "id": 3,
+                "title": "CPU por pod (cores)",
+                "type": "timeseries",
+                "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+                "targets": [{
+                  "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"ai-gateway\", container!=\"\"}[1m])) by (pod)",
+                  "legendFormat": "{{pod}}"
+                }]
+              },
+              {
+                "id": 4,
+                "title": "Memoria por pod (MB)",
+                "type": "timeseries",
+                "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+                "targets": [{
+                  "expr": "sum(container_memory_working_set_bytes{namespace=\"ai-gateway\", container!=\"\"}) by (pod) / 1024 / 1024",
+                  "legendFormat": "{{pod}}"
+                }]
+              }
+            ]
+          }

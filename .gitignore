@@ -1,0 +1,44 @@
+# ─── Terraform ────────────────────────────────────────────────────────────────
+*.tfstate
+*.tfstate.backup
+.terraform/
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+crash.log
+crash.*.log
+
+# ─── Secretos y credenciales ──────────────────────────────────────────────────
+.env
+.env.*
+*.pem
+*.key
+
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# ─── Claude Code ──────────────────────────────────────────────────────────────
+.claude/
+CLAUDE.md
+
+# ─── Sistema operativo ────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Editores ─────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
