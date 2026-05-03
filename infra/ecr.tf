@@ -5,6 +5,9 @@ resource "aws_ecr_repository" "code_review_api" {
   # En producción se usaría IMMUTABLE con el SHA del commit como tag
   image_tag_mutability = "MUTABLE"
 
+  # force_delete: permite terraform destroy aunque el repo tenga imágenes
+  force_delete = true
+
   image_scanning_configuration {
     scan_on_push = true # Escaneo de CVEs gratuito en ECR Basic; sin coste adicional
   }
