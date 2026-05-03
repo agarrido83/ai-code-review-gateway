@@ -157,6 +157,31 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
   --namespace monitoring --create-namespace \
   --timeout 10m \
   -f monitoring/values.yaml
+```
+
+El `additionalServiceMonitors` del chart no crea el ServiceMonitor automáticamente en todas las versiones — aplicarlo a mano:
+
+```bash
+kubectl apply -f - <<'EOF'
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: code-review-api
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: code-review-api
+  namespaceSelector:
+    matchNames:
+      - ai-gateway
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s
+EOF
 
 # Acceder a Grafana (admin / capstone-grafana)
 kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring
