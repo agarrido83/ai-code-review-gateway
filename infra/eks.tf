@@ -51,6 +51,21 @@ resource "aws_eks_cluster" "capstone" {
   tags = local.capstone_tags
 }
 
+# Launch template: fija http_put_response_hop_limit=2 para que los pods puedan acceder al IMDS
+# y obtener credenciales AWS via el instance profile del nodo. Sin esto, los pods reciben
+# "Unable to locate credentials" porque el token IMDSv2 no supera el salto host→contenedor.
+resource "aws_launch_template" "capstone_nodes" {
+  name_prefix = "capstone-eks-nodes-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" # IMDSv2 obligatorio
+    http_put_response_hop_limit = 2          # permite el salto host→pod
+  }
+
+  tags = local.capstone_tags
+}
+
 # 2 x t3.medium: mínimo viable para EKS con todos los pods (LiteLLM + FastAPI + Prometheus + Grafana).
 # Nodos en subnets públicas con IP pública directa: sin NAT Gateway para minimizar coste del capstone.
 # En producción: subnets privadas + NAT Gateway + multi-AZ.
@@ -65,6 +80,11 @@ resource "aws_eks_node_group" "capstone" {
   ]
 
   instance_types = [var.eks_node_type]
+
+  launch_template {
+    id      = aws_launch_template.capstone_nodes.id
+    version = aws_launch_template.capstone_nodes.latest_version
+  }
 
   scaling_config {
     desired_size = var.eks_node_count
