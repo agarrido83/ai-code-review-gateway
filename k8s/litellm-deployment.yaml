@@ -38,14 +38,14 @@ spec:
             - name: config
               mountPath: /app/config.yaml
               subPath: config.yaml  # monta el fichero, no el directorio
-          # LiteLLM arranca Prisma ORM (Node.js) + Python: necesita más RAM que el default del CLAUDE.md
+          # LiteLLM arranca Prisma ORM (Node.js) + Python: supera 1Gi en el arranque (OOMKilled con 1Gi)
           resources:
             requests:
               cpu: "200m"
               memory: "512Mi"
             limits:
               cpu: "1000m"
-              memory: "1Gi"
+              memory: "2Gi"
           livenessProbe:
             httpGet:
               path: /health/liveliness
